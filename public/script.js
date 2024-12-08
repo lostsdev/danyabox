@@ -34,6 +34,43 @@ document.addEventListener('DOMContentLoaded', () => {
         
         nyaaContainer.appendChild(img);
     });
+
+    // Добавляем код для геометрических фигур
+    const geometricBackground = document.getElementById('geometricBackground');
+    const shapes = ['circle', 'square', 'triangle', 'hexagon', 'star'];
+    
+    function createShape() {
+        const shape = document.createElement('div');
+        const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
+        shape.classList.add('shape', shapeType);
+        
+        // Случайное начальное положение по горизонтали
+        const startPosition = Math.random() * window.innerWidth;
+        shape.style.left = `${startPosition}px`;
+        
+        // Случайная длительность анимации
+        const duration = 8 + Math.random() * 15;
+        shape.style.animationDuration = `${duration}s`;
+        
+        // Случайный размер
+        const scale = 0.3 + Math.random() * 2;
+        shape.style.transform = `scale(${scale})`;
+        
+        geometricBackground.appendChild(shape);
+        
+        // Удаляем фигуру после завершения анимации
+        setTimeout(() => {
+            shape.remove();
+        }, duration * 1000);
+    }
+    
+    // Создаем новые фигуры чаще
+    setInterval(createShape, 1000);
+    
+    // Создаем больше начальных фигур
+    for(let i = 0; i < 20; i++) {
+        setTimeout(createShape, Math.random() * 2000);
+    }
 });
 
 function shuffleArray(array) {
