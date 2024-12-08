@@ -19,6 +19,7 @@ body {
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: 'Lilita One', cursive;
 }
 
 .host-button button:hover {
@@ -54,6 +55,9 @@ body {
     width: 300px;
     outline: none;
     transition: border-color 0.3s ease;
+    text-align: center;
+    font-family: 'Maple Mono', monospace;
+    font-weight: 800;
 }
 
 #nickname-input:focus,
@@ -72,6 +76,7 @@ body {
     transition: background-color 0.3s ease;
     width: 200px;
     margin-top: 5px;
+    font-family: 'Lilita One', cursive;
 }
 
 .play-button:hover {
@@ -80,7 +85,7 @@ body {
 
 .nyaa-container {
     position: fixed;
-    bottom: -80px;
+    bottom: -100px;
     left: 0;
     width: 100%;
     height: 250px;
@@ -206,4 +211,71 @@ body {
         transform: translate(0, -100vh) rotate(360deg);
         opacity: 0;
     }
+}
+
+.host-screen {
+    text-align: center;
+}
+
+.host-screen h2 {
+    font-family: 'Lilita One', cursive;
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.continue-button {
+    padding: 12px 24px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    font-family: 'Lilita One', cursive;
+}
+
+.continue-button:hover {
+    background-color: #0056b3;
+}
+
+.players-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.player-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.player-avatar {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.waiting-screen {
+    text-align: center;
+    font-family: 'Lilita One', cursive;
+    color: #007bff;
+}
+
+.waiting-screen h2 {
+    font-family: 'Lilita One', cursive;
+    font-size: 32px;
+    color: #007bff;
+}
+
+.player-item span {
+    font-family: 'Maple Mono', monospace;
+    font-weight: 800;
+    font-size: 14px;
+    color: #6c757d;
+    letter-spacing: 0.5px;
 } 
