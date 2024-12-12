@@ -7,12 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
         '/nyaa/blondeup.png',
         '/nyaa/orangeh.png',
         '/nyaa/orangeup.png',
+        '/nyaa/orangeh2.png',
+        '/nyaa/orangeup2.png',
         '/nyaa/pinkh.png',
         '/nyaa/pinkup.png',
         '/nyaa/redh.png',
         '/nyaa/redup.png',
         '/nyaa/whiteh.png',
         '/nyaa/whiteup.png',
+        '/nyaa/darkh.png',
+        '/nyaa/darkup.png',
         '/nyaa/catgirlupset.png',
         '/nyaa/catgirlhappy.png'
     ];
@@ -110,8 +114,75 @@ document.addEventListener('DOMContentLoaded', () => {
         startPlayerUpdates(gameCode);
 
         const continueButton = document.querySelector('.continue-button');
-        continueButton.addEventListener('click', () => {
-            alert('Скоро здесь начнется игра!');
+        continueButton.addEventListener('click', async () => {
+            const response = await fetch('/api/start-game', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ gameCode: currentGameCode })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                alert(data.error);
+                return;
+            }
+
+            const hostScreen = document.querySelector('.host-screen');
+            const TIMER_DURATION = 180; // 3 минуты
+            let timeLeft = TIMER_DURATION;
+
+            hostScreen.innerHTML = `
+                <div class="timer">Осталось времени: ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2, '0')}</div>
+                <h2 style="color: #8BB9FF; font-size: 42px; margin-top: 40px;">
+                    Посмотрите на ваши устройства
+                </h2>
+                <div class="finished-players-container">
+                    <h3>Ответившие игроки:</h3>
+                    <div class="players-list"></div>
+                </div>
+            `;
+
+            // Запускаем таймер
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                const timerElement = hostScreen.querySelector('.timer');
+                
+                if (timeLeft >= 0) {
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    timerElement.textContent = `Осталось времени: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    timerElement.style.color = timeLeft < 30 ? '#ff4444' : '#007bff';
+                } else {
+                    clearInterval(timerInterval);
+                    timerElement.textContent = 'Время вышло!';
+                    timerElement.style.color = '#ff4444';
+                }
+            }, 1000);
+
+            // Запускаем обновление списка ответивших игроков
+            const updateInterval = setInterval(async () => {
+                const response = await fetch(`/api/finished-players/${currentGameCode}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const playersList = hostScreen.querySelector('.players-list');
+                    playersList.innerHTML = data.players.map(player => `
+                        <div class="player-item">
+                            <img src="${player.avatar}" alt="${player.nickname}" class="player-avatar">
+                            <span>${player.nickname}</span>
+                        </div>
+                    `).join('');
+                }
+            }, 1000);
+
+            // Очищаем интервалы при уходе со страницы
+            window.addEventListener('beforeunload', () => {
+                clearInterval(timerInterval);
+                clearInterval(updateInterval);
+            });
         });
     });
 
@@ -155,6 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h2>Ожидание начала игры...</h2>
             </div>
         `;
+
+        // Запускаем пинги и проверку состояния игры
+        startPinging(gameCode, nickname);
+        startGameStateCheck(gameCode, nickname);
     });
 
     function startPlayerUpdates(gameCode) {
@@ -184,6 +259,187 @@ document.addEventListener('DOMContentLoaded', () => {
             }));
         }
     });
+
+    function startPinging(gameCode, nickname) {
+        // Отправляем пинг каждые 10 секунд
+        const pingInterval = setInterval(async () => {
+            try {
+                await fetch('/api/ping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ gameCode, nickname })
+                });
+            } catch (error) {
+                console.error('Ошибка пинга:', error);
+            }
+        }, 10000);
+
+        // Сохраняем ID интервала, чтобы можно было остановить пинги при необходимости
+        window.addEventListener('beforeunload', () => {
+            clearInterval(pingInterval);
+        });
+    }
+
+    // Добавляем новую функцию для получения вопроса
+    async function getQuestion(gameCode, nickname) {
+        const response = await fetch(`/api/get-question/${gameCode}/${nickname}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            console.error('Ошибка получения вопроса:', data.error);
+            return null;
+        }
+        
+        return data;
+    }
+
+    // Обновляем функцию показа вопросов
+    function showQuestions(questions) {
+        const mainContainer = document.querySelector('.main-container');
+        const TIMER_DURATION = 180; // 3 минуты в секундах
+        let timeLeft = TIMER_DURATION;
+        let timerInterval;
+        
+        // Показываем только первый вопрос изначально
+        mainContainer.innerHTML = `
+            <div class="questions-screen">
+                <div class="timer">Осталось времени: ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2, '0')}</div>
+                <div class="question-section" id="current-question">
+                    <div class="question-box">
+                        <h2>${questions[0].question}</h2>
+                    </div>
+                    <textarea class="answer-input" placeholder="Введи свой ответ здесь..." rows="4"></textarea>
+                    <button class="submit-answer">Отправить ответ</button>
+                </div>
+            </div>
+        `;
+
+        let currentQuestionIndex = 0;
+
+        // Запускаем таймер
+        function startTimer() {
+            const timerElement = document.querySelector('.timer');
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                if (timeLeft >= 0) {
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    timerElement.textContent = `Осталось времени: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    timerElement.style.color = timeLeft < 30 ? '#ff4444' : '#007bff';
+                } else {
+                    clearInterval(timerInterval);
+                    // Время вышло, показываем экран ожидания
+                    mainContainer.innerHTML = `
+                        <div class="waiting-screen">
+                            <h2>Время вышло!</h2>
+                            <p>Ожидайте ответы других игроков...</p>
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        startTimer();
+
+        // Добавляем обработчик для кнопки отправки
+        const submitButton = document.querySelector('.submit-answer');
+        submitButton.addEventListener('click', () => {
+            if (timeLeft <= 0) {
+                alert('Время вышло!');
+                return;
+            }
+
+            const section = document.getElementById('current-question');
+            const answerInput = section.querySelector('.answer-input');
+            const answer = answerInput.value.trim();
+            
+            if (!answer) {
+                alert('Пожалуйста, введите ответ!');
+                return;
+            }
+
+            currentQuestionIndex++;
+
+            // Если есть второй вопрос, показываем его
+            if (currentQuestionIndex < questions.length) {
+                const questionSection = document.querySelector('.question-section');
+                questionSection.innerHTML = `
+                    <div class="question-box">
+                        <h2>${questions[currentQuestionIndex].question}</h2>
+                    </div>
+                    <textarea class="answer-input" placeholder="Введи свой ответ здесь..." rows="4"></textarea>
+                    <button class="submit-answer">Отправить ответ</button>
+                `;
+
+                // Добавляем обработчик для нового вопроса
+                const newSubmitButton = questionSection.querySelector('.submit-answer');
+                newSubmitButton.addEventListener('click', () => {
+                    if (timeLeft <= 0) {
+                        alert('Время вышло!');
+                        return;
+                    }
+
+                    const newAnswerInput = questionSection.querySelector('.answer-input');
+                    const newAnswer = newAnswerInput.value.trim();
+                    
+                    if (!newAnswer) {
+                        alert('Пожалуйста, введите ответ!');
+                        return;
+                    }
+
+                    clearInterval(timerInterval); // Останавливаем таймер
+
+                    // Показываем экран ожидания
+                    mainContainer.innerHTML = `
+                        <div class="waiting-screen">
+                            <h2>Ожидайте ответы других игроков...</h2>
+                        </div>
+                    `;
+                });
+            } else {
+                clearInterval(timerInterval); // Останавливаем таймер
+                
+                // Отправляем информацию о завершении
+                fetch('/api/player-finished', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        gameCode: currentGameCode, 
+                        nickname: currentNickname 
+                    })
+                });
+
+                mainContainer.innerHTML = `
+                    <div class="waiting-screen">
+                        <h2>Ожидайте ответы других игроков...</h2>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    // Обновляем функцию проверки состояния игры
+    function startGameStateCheck(gameCode, nickname) {
+        const checkInterval = setInterval(async () => {
+            const data = await getQuestion(gameCode, nickname);
+            
+            if (data?.questions?.length > 0) {
+                showQuestions(data.questions);
+                clearInterval(checkInterval);
+            }
+        }, 1000);
+
+        // Сохраняем ID интервала
+        window.addEventListener('beforeunload', () => {
+            clearInterval(checkInterval);
+        });
+    }
 });
 
 function shuffleArray(array) {
