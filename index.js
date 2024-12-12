@@ -359,7 +359,7 @@ function cleanupInactivePlayers() {
 // Запускаем очистку каждые 5 секунд
 setInterval(cleanupInactivePlayers, 5000);
 
-// Добавим эндпоинт для отметки завершивших игроков
+// Обновляем эндпоинт для отметки завершивших игроков
 app.post('/api/player-finished', (req, res) => {
     const { gameCode, nickname } = req.body;
     const game = activeGames.get(gameCode);
@@ -373,8 +373,10 @@ app.post('/api/player-finished', (req, res) => {
         game.finishedPlayers = [];
     }
 
-    // Добавляем игрока в список завершивших, если его там еще нет
-    if (!game.finishedPlayers.includes(nickname)) {
+    // Проверяем, не добавлен ли уже игрок в список завершивших
+    const isAlreadyFinished = game.finishedPlayers.some(p => p.nickname === nickname);
+    
+    if (!isAlreadyFinished) {
         const player = game.players.find(p => p.nickname === nickname);
         if (player) {
             game.finishedPlayers.push({

@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const hostScreen = document.querySelector('.host-screen');
-            const TIMER_DURATION = 180; // 3 минуты
+            const TIMER_DURATION = 300; // 5 минут
             let timeLeft = TIMER_DURATION;
 
             hostScreen.innerHTML = `
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обновляем функцию показа вопросов
     function showQuestions(questions) {
         const mainContainer = document.querySelector('.main-container');
-        const TIMER_DURATION = 180; // 3 минуты в секундах
+        const TIMER_DURATION = 300; // 5 минут в секундах
         let timeLeft = TIMER_DURATION;
         let timerInterval;
         
@@ -364,6 +364,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentQuestionIndex++;
 
+            // Отправляем информацию о завершении после каждого ответа
+            fetch('/api/player-finished', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    gameCode: currentGameCode, 
+                    nickname: currentNickname 
+                })
+            });
+
             // Если есть второй вопрос, показываем его
             if (currentQuestionIndex < questions.length) {
                 const questionSection = document.querySelector('.question-section');
@@ -387,11 +399,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     const newAnswer = newAnswerInput.value.trim();
                     
                     if (!newAnswer) {
-                        alert('Пожалуйста, введите ответ!');
+                        alert('Пожалуйста, введите отве��!');
                         return;
                     }
 
                     clearInterval(timerInterval); // Останавливаем таймер
+
+                    // Отправляем информацию о завершении после второго ответа
+                    fetch('/api/player-finished', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            gameCode: currentGameCode, 
+                            nickname: currentNickname 
+                        })
+                    });
 
                     // Показываем экран ожидания
                     mainContainer.innerHTML = `
@@ -403,18 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 clearInterval(timerInterval); // Останавливаем таймер
                 
-                // Отправляем информацию о завершении
-                fetch('/api/player-finished', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        gameCode: currentGameCode, 
-                        nickname: currentNickname 
-                    })
-                });
-
+                // Показываем экран ожидания
                 mainContainer.innerHTML = `
                     <div class="waiting-screen">
                         <h2>Ожидайте ответы других игроков...</h2>
