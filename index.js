@@ -6,9 +6,7 @@ const port = 3000;
 app.use(express.static('public'));
 app.use(express.json());
 
-// Хранилище активных игр
 const activeGames = new Map();
-// Хранилище пар аватаров
 const avatarPairs = [
     { base: 'catgirl', happy: '/nyaa/catgirlhappy.png', upset: '/nyaa/catgirlupset.png' },
     { base: 'red', happy: '/nyaa/redh.png', upset: '/nyaa/redup.png' },
@@ -21,7 +19,6 @@ const avatarPairs = [
     { base: 'dark', happy: '/nyaa/darkh.png', upset: '/nyaa/darkup.png' }
 ];
 
-// Хранилище вопросов
 const questions = [
     "Что делать, если вы встретили медведя в лесу?",
     "Как объяснить бабушке, что такое биткоин?",
@@ -33,7 +30,6 @@ const questions = [
     "Как пережить понедельник, если вы случайно проспали и опоздали на работу на 2 часа?"
 ];
 
-// Добавим функцию перемешивания массива
 function shuffleArray(array) {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -43,7 +39,6 @@ function shuffleArray(array) {
     return newArray;
 }
 
-// Создание новой игры
 app.post('/api/create-game', (req, res) => {
     const gameCode = req.body.gameCode.toString();
     
@@ -51,15 +46,14 @@ app.post('/api/create-game', (req, res) => {
         host: true,
         players: [],
         availableAvatars: shuffleArray([...avatarPairs]),
-        gameState: 'waiting', // waiting, round1, round2
-        currentQuestions: [], // Здесь будем хранить текущие пары
-        questionPairs: [] // Здесь будем хранить все пары для обоих раундов
+        gameState: 'waiting', 
+        currentQuestions: [], 
+        questionPairs: [] 
     });
     
     res.json({ success: true });
 });
 
-// Присоединение к игре
 app.post('/api/join-game', (req, res) => {
     const nickname = req.body.nickname;
     const gameCode = req.body.gameCode.toString();
@@ -80,7 +74,6 @@ app.post('/api/join-game', (req, res) => {
         });
     }
 
-    // Проверяем, не занят ли никнейм
     if (game.players.some(player => player.nickname === nickname)) {
         return res.json({ 
             success: false, 
@@ -90,15 +83,12 @@ app.post('/api/join-game', (req, res) => {
 
     let avatarPair;
     
-    // Если это первый игрок, даем ему catgirl
     if (game.players.length === 0) {
         avatarPair = game.availableAvatars.find(avatar => avatar.base === 'catgirl');
-        // Удаляем catgirl из доступных аватаров
+        
         game.availableAvatars = game.availableAvatars.filter(avatar => avatar.base !== 'catgirl');
     } else {
-        // Для остальных игроков берем первый доступный аватар
         avatarPair = game.availableAvatars[0];
-        // Удаляем использованный аватар из доступных
         game.availableAvatars.shift();
     }
 
@@ -109,7 +99,6 @@ app.post('/api/join-game', (req, res) => {
         });
     }
 
-    // Добавляем игрока
     const player = {
         nickname,
         avatar: avatarPair,
@@ -125,7 +114,6 @@ app.post('/api/join-game', (req, res) => {
     });
 });
 
-// Получение списка игроков для хоста
 app.get('/api/game-players/:gameCode', (req, res) => {
     const gameCode = req.params.gameCode.toString();
     const game = activeGames.get(gameCode);
@@ -146,7 +134,6 @@ app.get('/api/game-players/:gameCode', (req, res) => {
     });
 });
 
-// Удаление игрока (при отключении)
 app.post('/api/leave-game', (req, res) => {
     const gameCode = req.body?.gameCode;
     const nickname = req.body?.nickname;
@@ -160,7 +147,6 @@ app.post('/api/leave-game', (req, res) => {
     if (game) {
         const playerIndex = game.players.findIndex(p => p.nickname === nickname);
         if (playerIndex !== -1) {
-            // Возвращаем аватар в пул доступных
             game.availableAvatars.push(game.players[playerIndex].avatar);
             game.players.splice(playerIndex, 1);
         }
@@ -169,7 +155,6 @@ app.post('/api/leave-game', (req, res) => {
     res.json({ success: true });
 });
 
-// Добавим новый эндпоинт для пинга
 app.post('/api/ping', (req, res) => {
     const { gameCode, nickname } = req.body;
     const game = activeGames.get(gameCode?.toString());
@@ -184,7 +169,6 @@ app.post('/api/ping', (req, res) => {
     res.json({ success: true });
 });
 
-// Обновляем эндпоинт для начала игры
 app.post('/api/start-game', (req, res) => {
     const gameCode = req.body.gameCode.toString();
     const game = activeGames.get(gameCode);
@@ -193,7 +177,6 @@ app.post('/api/start-game', (req, res) => {
         return res.json({ success: false, error: 'Игра не найдена' });
     }
 
-    // Проверяем минимальное количество игроков
     if (game.players.length < 2) {
         return res.json({ 
             success: false, 
@@ -204,11 +187,9 @@ app.post('/api/start-game', (req, res) => {
     const shuffledPlayers = shuffleArray([...game.players]);
     const shuffledQuestions = shuffleArray([...questions]);
     
-    // Создаем пары для первого раунда
     const round1Pairs = [];
     const hasExtraPlayer = shuffledPlayers.length % 2 === 1;
     
-    // Создаем обычные пары
     for (let i = 0; i < (hasExtraPlayer ? shuffledPlayers.length - 3 : shuffledPlayers.length); i += 2) {
         round1Pairs.push({
             players: [shuffledPlayers[i], shuffledPlayers[i + 1]],
@@ -216,7 +197,6 @@ app.post('/api/start-game', (req, res) => {
         });
     }
 
-    // Если есть лишний игрок, создаем тройку для последнего вопроса
     if (hasExtraPlayer) {
         round1Pairs.push({
             players: [
@@ -228,10 +208,8 @@ app.post('/api/start-game', (req, res) => {
         });
     }
 
-    // Перемешиваем игроков для второго раунда
     let round2Players = shuffleArray([...shuffledPlayers]);
     
-    // Создаем пары для второго раунда
     const round2Pairs = [];
     for (let i = 0; i < (hasExtraPlayer ? round2Players.length - 3 : round2Players.length); i += 2) {
         round2Pairs.push({
@@ -240,7 +218,6 @@ app.post('/api/start-game', (req, res) => {
         });
     }
 
-    // Добавляем тройку для второго раунда, если нужно
     if (hasExtraPlayer) {
         round2Pairs.push({
             players: [
@@ -258,12 +235,11 @@ app.post('/api/start-game', (req, res) => {
     };
     game.gameState = 'round1';
     game.currentQuestions = round1Pairs;
-    game.playerAnswers = new Map(); // Добавляем хранилище для ответов
+    game.playerAnswers = new Map(); 
 
     res.json({ success: true });
 });
 
-// Обновляем эндпоинт для получения вопроса
 app.get('/api/get-question/:gameCode/:nickname', (req, res) => {
     const { gameCode, nickname } = req.params;
     const game = activeGames.get(gameCode);
@@ -272,7 +248,6 @@ app.get('/api/get-question/:gameCode/:nickname', (req, res) => {
         return res.json({ success: false, error: 'Игра не найдена' });
     }
 
-    // Проверяем, началась ли игра
     if (game.gameState === 'waiting' || !game.questionPairs) {
         return res.json({ 
             success: false, 
@@ -280,10 +255,8 @@ app.get('/api/get-question/:gameCode/:nickname', (req, res) => {
         });
     }
 
-    // Находим все пары/тройки с участием игрока
     const playerQuestions = [];
     
-    // Проверяем первый раунд
     const round1Question = game.questionPairs.round1?.find(pair => 
         pair.players.some(player => player.nickname === nickname)
     );
@@ -297,7 +270,6 @@ app.get('/api/get-question/:gameCode/:nickname', (req, res) => {
         });
     }
 
-    // Проверяем второй раунд
     const round2Question = game.questionPairs.round2?.find(pair => 
         pair.players.some(player => player.nickname === nickname)
     );
@@ -317,7 +289,6 @@ app.get('/api/get-question/:gameCode/:nickname', (req, res) => {
     });
 });
 
-// Добавляем эндпоинт для перехода ко второму раунду
 app.post('/api/next-round', (req, res) => {
     const { gameCode } = req.body;
     const game = activeGames.get(gameCode);
@@ -335,9 +306,8 @@ app.post('/api/next-round', (req, res) => {
     }
 });
 
-// Добавим функцию очистки неактивных игроков
 function cleanupInactivePlayers() {
-    const inactiveTimeout = 15000; // 15 секунд (даем небольшой запас)
+    const inactiveTimeout = 15000;
     
     activeGames.forEach((game, gameCode) => {
         const now = Date.now();
@@ -348,7 +318,6 @@ function cleanupInactivePlayers() {
         inactivePlayers.forEach(player => {
             const playerIndex = game.players.findIndex(p => p.nickname === player.nickname);
             if (playerIndex !== -1) {
-                // Возвращаем аватар в пул доступных
                 game.availableAvatars.push(game.players[playerIndex].avatar);
                 game.players.splice(playerIndex, 1);
             }
@@ -356,10 +325,8 @@ function cleanupInactivePlayers() {
     });
 }
 
-// Запускаем очистку каждые 5 секунд
 setInterval(cleanupInactivePlayers, 5000);
 
-// Обновляем эндпоинт для отметки завершивших игроков
 app.post('/api/player-finished', (req, res) => {
     const { gameCode, nickname } = req.body;
     const game = activeGames.get(gameCode);
@@ -368,12 +335,10 @@ app.post('/api/player-finished', (req, res) => {
         return res.json({ success: false, error: 'Игра не найдена' });
     }
 
-    // Если у игры еще нет списка завершивших, создаем его
     if (!game.finishedPlayers) {
         game.finishedPlayers = [];
     }
 
-    // Проверяем, не добавлен ли уже игрок в список завершивших
     const isAlreadyFinished = game.finishedPlayers.some(p => p.nickname === nickname);
     
     if (!isAlreadyFinished) {
@@ -389,7 +354,6 @@ app.post('/api/player-finished', (req, res) => {
     res.json({ success: true });
 });
 
-// Добавим эндпоинт для получения списка завершивших игроков
 app.get('/api/finished-players/:gameCode', (req, res) => {
     const { gameCode } = req.params;
     const game = activeGames.get(gameCode);

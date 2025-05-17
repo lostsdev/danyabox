@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         '/nyaa/catgirlhappy.png'
     ];
 
-    // Выбираем случайные 4 изображения
     const selectedImages = shuffleArray(images).slice(0, 4);
 
     selectedImages.forEach(imagePath => {
@@ -29,11 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
         img.src = imagePath;
         img.classList.add('nyaa-image');
         
-        // Добавляем случайный наклон от -15 до 15 градусов
         const rotation = Math.random() * 30 - 15;
         img.style.transform = `rotate(${rotation}deg)`;
         
-        // Добавляем обработчик ошибок загрузки изображения
         img.onerror = () => {
             console.error(`Ошибка загрузки изображения: ${imagePath}`);
         };
@@ -41,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
         nyaaContainer.appendChild(img);
     });
 
-    // Добавляем код для геометрических фигур
     const geometricBackground = document.getElementById('geometricBackground');
     const shapes = ['circle', 'square', 'triangle', 'hexagon', 'star'];
     
@@ -50,30 +46,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
         shape.classList.add('shape', shapeType);
         
-        // Случайное начальное положение по горизонтали
         const startPosition = Math.random() * window.innerWidth;
         shape.style.left = `${startPosition}px`;
         
-        // Случайная длительность анимации
         const duration = 8 + Math.random() * 15;
         shape.style.animationDuration = `${duration}s`;
         
-        // Случайный размер
         const scale = 0.3 + Math.random() * 2;
         shape.style.transform = `scale(${scale})`;
         
         geometricBackground.appendChild(shape);
         
-        // Удаляем фигуру после завершения анимации
         setTimeout(() => {
             shape.remove();
         }, duration * 1000);
     }
     
-    // Создаем новые фигуры чаще
     setInterval(createShape, 1000);
     
-    // Создаем больше начальных фигур
     for(let i = 0; i < 20; i++) {
         setTimeout(createShape, Math.random() * 2000);
     }
@@ -81,13 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentGameCode = null;
     let currentNickname = null;
 
-    // Обработчик для кнопки хоста
     const hostButton = document.querySelector('.host-button button');
     hostButton.addEventListener('click', async () => {
         const gameCode = Math.floor(1000 + Math.random() * 9000);
         currentGameCode = gameCode;
         
-        // Отправляем код на сервер
         const response = await fetch('/api/create-game', {
             method: 'POST',
             headers: {
@@ -110,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Запускаем периодическое обновление списка игроков
         startPlayerUpdates(gameCode);
 
         const continueButton = document.querySelector('.continue-button');
@@ -145,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // Запускаем таймер
             const timerInterval = setInterval(() => {
                 timeLeft--;
                 const timerElement = hostScreen.querySelector('.timer');
@@ -162,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 1000);
 
-            // Запускаем обновление списка ответивших игроков
             const updateInterval = setInterval(async () => {
                 const response = await fetch(`/api/finished-players/${currentGameCode}`);
                 const data = await response.json();
@@ -178,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 1000);
 
-            // Очищаем интервалы при уходе со страницы
             window.addEventListener('beforeunload', () => {
                 clearInterval(timerInterval);
                 clearInterval(updateInterval);
@@ -186,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Обработчик для кнопки "Начать игру"
     const playButton = document.querySelector('.play-button');
     playButton.addEventListener('click', async () => {
         const nicknameInput = document.getElementById('nickname-input');
@@ -215,11 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Сохраняем данные игрока
         currentGameCode = gameCode;
         currentNickname = nickname;
         
-        // Показываем экран ожидания
         const mainContainer = document.querySelector('.main-container');
         mainContainer.innerHTML = `
             <div class="waiting-screen">
@@ -227,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Запускаем пинги и проверку состояния игры
         startPinging(gameCode, nickname);
         startGameStateCheck(gameCode, nickname);
     });
@@ -250,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    // Обработка выхода игрока
     window.addEventListener('beforeunload', () => {
         if (currentGameCode && currentNickname) {
             navigator.sendBeacon('/api/leave-game', JSON.stringify({
@@ -261,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function startPinging(gameCode, nickname) {
-        // Отправляем пинг каждые 10 секунд
         const pingInterval = setInterval(async () => {
             try {
                 await fetch('/api/ping', {
@@ -276,13 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 10000);
 
-        // Сохраняем ID интервала, чтобы можно было остановить пинги при необходимости
         window.addEventListener('beforeunload', () => {
             clearInterval(pingInterval);
         });
     }
 
-    // Добавляем новую функцию для получения вопроса
     async function getQuestion(gameCode, nickname) {
         const response = await fetch(`/api/get-question/${gameCode}/${nickname}`);
         const data = await response.json();
@@ -295,14 +271,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     }
 
-    // Обновляем функцию показа вопросов
     function showQuestions(questions) {
         const mainContainer = document.querySelector('.main-container');
-        const TIMER_DURATION = 300; // 5 минут в секундах
+        const TIMER_DURATION = 300; // 5 минут
         let timeLeft = TIMER_DURATION;
         let timerInterval;
         
-        // Показываем только первый вопрос изначально
         mainContainer.innerHTML = `
             <div class="questions-screen">
                 <div class="timer">Осталось времени: ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2, '0')}</div>
@@ -318,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let currentQuestionIndex = 0;
 
-        // Запускаем таймер
         function startTimer() {
             const timerElement = document.querySelector('.timer');
             
@@ -332,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     timerElement.style.color = timeLeft < 30 ? '#ff4444' : '#007bff';
                 } else {
                     clearInterval(timerInterval);
-                    // Время вышло, показываем экран ожидания
                     mainContainer.innerHTML = `
                         <div class="waiting-screen">
                             <h2>Время вышло!</h2>
@@ -345,7 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         startTimer();
 
-        // Добавляем обработчик для кнопки отправки
         const submitButton = document.querySelector('.submit-answer');
         submitButton.addEventListener('click', () => {
             if (timeLeft <= 0) {
@@ -364,7 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentQuestionIndex++;
 
-            // Отправляем информацию о завершении после каждого ответа
             fetch('/api/player-finished', {
                 method: 'POST',
                 headers: {
@@ -376,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            // Если есть второй вопрос, показываем его
             if (currentQuestionIndex < questions.length) {
                 const questionSection = document.querySelector('.question-section');
                 questionSection.innerHTML = `
@@ -387,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="submit-answer">Отправить ответ</button>
                 `;
 
-                // Добавляем обработчик для нового вопроса
                 const newSubmitButton = questionSection.querySelector('.submit-answer');
                 newSubmitButton.addEventListener('click', () => {
                     if (timeLeft <= 0) {
@@ -403,9 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    clearInterval(timerInterval); // Останавливаем таймер
-
-                    // Отправляем информацию о завершении после второго ответа
+                    clearInterval(timerInterval); 
                     fetch('/api/player-finished', {
                         method: 'POST',
                         headers: {
@@ -417,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         })
                     });
 
-                    // Показываем экран ожидания
                     mainContainer.innerHTML = `
                         <div class="waiting-screen">
                             <h2>Ожидайте ответы других игроков...</h2>
@@ -425,9 +390,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 });
             } else {
-                clearInterval(timerInterval); // Останавливаем таймер
+                clearInterval(timerInterval);
                 
-                // Показываем экран ожидания
                 mainContainer.innerHTML = `
                     <div class="waiting-screen">
                         <h2>Ожидайте ответы других игроков...</h2>
@@ -437,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Обновляем функцию проверки состояния игры
     function startGameStateCheck(gameCode, nickname) {
         const checkInterval = setInterval(async () => {
             const data = await getQuestion(gameCode, nickname);
@@ -448,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 1000);
 
-        // Сохраняем ID интервала
         window.addEventListener('beforeunload', () => {
             clearInterval(checkInterval);
         });
